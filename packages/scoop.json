@@ -1,0 +1,26 @@
+{
+  "_comment": "Read by bootstrap.ps1. Buckets are added before apps. Apps may be qualified with bucket/ prefix when ambiguous.",
+  "buckets": [
+    "extras",
+    "nerd-fonts"
+  ],
+  "apps": [
+    "git",
+    "gh",
+    "neovim",
+    "starship",
+    "lazygit",
+    "bat",
+    "fd",
+    "ripgrep",
+    "fzf",
+    "zoxide",
+    "atuin",
+    "eza",
+    "mise",
+    "jq",
+    "delta",
+    "extras/psmux",
+    "nerd-fonts/JetBrainsMono-NF"
+  ]
+}

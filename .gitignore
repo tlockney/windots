@@ -1,0 +1,4 @@
+# Local-only state
+*.local.ps1
+local/
+.windots-installed
