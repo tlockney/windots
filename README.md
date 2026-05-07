@@ -15,13 +15,18 @@ side and reads portable configs out of `dotfiles` via symlinks.
 windots/
 ├── bootstrap.ps1                       # one-shot installer
 ├── Microsoft.PowerShell_profile.ps1    # canonical PS profile (linked into $PROFILE)
-├── profile.d/
-│   ├── init.ps1                        # XDG_CONFIG_HOME, TMUX_PLATFORM, env
-│   ├── tools.ps1                       # starship/zoxide/atuin/mise init
-│   └── aliases.ps1                     # zsh-style aliases for PS
+├── profile.d/                          # numeric prefixes lock load order
+│   ├── 00-init.ps1                     # XDG_CONFIG_HOME, TMUX_PLATFORM, EDITOR
+│   ├── 10-keybindings.ps1              # PSReadLine: bash/zsh-style editing
+│   ├── 20-tools.ps1                    # starship/zoxide/atuin/mise/PSFzf, ssh-agent, completions
+│   ├── 30-aliases.ps1                  # ls/cat/grep/find/.. unix-shaped aliases
+│   ├── 40-git.ps1                      # oh-my-zsh-style git shortcuts
+│   ├── 50-docker.ps1                   # docker / docker compose shortcuts
+│   └── 60-util.ps1                     # serve, open, e, duh, myip, killall, extract
 └── packages/
     ├── scoop.json                      # CLI toolbox (scoop)
-    └── winget.json                     # GUI apps (winget import format)
+    ├── winget.json                     # GUI apps (winget import format)
+    └── psgallery.json                  # PowerShell modules (Install-Module from PSGallery)
 ```
 
 ## How config sharing works
@@ -68,8 +73,11 @@ The bootstrap will:
 3. Install scoop if missing, add `extras` and `nerd-fonts` buckets,
    install everything in `packages/scoop.json`.
 4. Run `winget import packages/winget.json` for GUI apps.
-5. Create the config symlinks listed above.
-6. Symlink `$PROFILE` to `Microsoft.PowerShell_profile.ps1` in this
+5. `Install-Module` everything in `packages/psgallery.json` (PSReadLine,
+   PSFzf, posh-git, Terminal-Icons) from PSGallery, scoped to the
+   current user.
+6. Create the config symlinks listed above.
+7. Symlink `$PROFILE` to `Microsoft.PowerShell_profile.ps1` in this
    repo so profile edits flow live.
 
 Run it again any time — every step is idempotent.

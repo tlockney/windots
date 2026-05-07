@@ -1,0 +1,9 @@
+{
+  "_comment": "Read by bootstrap.ps1's Sync-PSGalleryModules. Modules listed here are installed for the current user from PSGallery if missing. Profile modules guard with Get-Module -ListAvailable, so a module being absent is non-fatal.",
+  "modules": [
+    "PSReadLine",
+    "PSFzf",
+    "posh-git",
+    "Terminal-Icons"
+  ]
+}
