@@ -22,18 +22,23 @@ if (Get-Command atuin -ErrorAction SilentlyContinue) {
 }
 
 if (Get-Command mise -ErrorAction SilentlyContinue) {
-    # mise's pwsh activation registers a CommandNotFound hook that calls
-    # [PSConsoleReadLine]::GetHistoryItems()[-1] without a null check. When
-    # PSReadLine has no history yet (cold start, fresh history file),
-    # GetHistoryItems() returns $null and $null[-1] throws — which fires
-    # several times during profile load. Patch the unsafe indexer to a
-    # null-propagating Select-Object -Last 1 form. Remove this when mise
-    # ships a null-safe version of the hook upstream.
-    $miseInit = mise activate pwsh | Out-String
-    $miseInit = $miseInit -replace `
-        '\[Microsoft\.PowerShell\.PSConsoleReadLine\]::GetHistoryItems\(\)\[-1\]\.CommandLine', `
-        '([Microsoft.PowerShell.PSConsoleReadLine]::GetHistoryItems() | Select-Object -Last 1).CommandLine'
-    Invoke-Expression $miseInit
+    # mise activate pwsh installs a CommandNotFound hook that calls
+    # [PSConsoleReadLine]::GetHistoryItems() inside its handler. When the
+    # hook fires during profile parse — before PSReadLine's input loop
+    # has primed its singleton state — the call NREs internally (not the
+    # [-1] indexer; the method itself throws). PowerShell triggers the
+    # hook several times during startup, producing several errors per
+    # session.
+    #
+    # The hook block is gated by `if (-not $__mise_pwsh_command_not_found)`,
+    # so pre-setting that variable to $true skips the entire block — no
+    # event handler is registered, no NREs. Cost: lose mise's
+    # install-on-not-found feature (typing a tool name that mise.toml
+    # declares but isn't installed yet won't auto-install). All other
+    # mise functionality (PATH/env management, prompt hooks) is
+    # unaffected. Drop this when mise fixes the hook upstream.
+    $Global:__mise_pwsh_command_not_found = $true
+    Invoke-Expression (& { (mise activate pwsh | Out-String) })
 }
 
 # fzf PSReadLine integration. Loaded after 10-keybindings.ps1 so PSFzf can
