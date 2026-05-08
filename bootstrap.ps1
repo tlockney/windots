@@ -6,8 +6,9 @@
 # Usage:
 #   .\bootstrap.ps1                     # full run
 #   .\bootstrap.ps1 -SkipPackages       # configs + symlinks only
-#   .\bootstrap.ps1 -SkipScoop          # winget + symlinks only
-#   .\bootstrap.ps1 -SkipWinget         # scoop + symlinks only
+#   .\bootstrap.ps1 -SkipScoop          # winget + symlinks + psgallery
+#   .\bootstrap.ps1 -SkipWinget         # scoop  + symlinks + psgallery
+#   .\bootstrap.ps1 -SkipPSGallery      # scoop  + winget   + symlinks
 #   .\bootstrap.ps1 -SkipSymlinks       # packages only
 #
 # Override the dotfiles location with $env:DOTFILES_HOME before running.
@@ -17,6 +18,7 @@ param(
     [switch]$SkipPackages,
     [switch]$SkipScoop,
     [switch]$SkipWinget,
+    [switch]$SkipPSGallery,
     [switch]$SkipSymlinks
 )
 
@@ -106,6 +108,25 @@ function Sync-ScoopPackages {
     }
 }
 
+function Sync-PSGalleryModules {
+    $manifestPath = Join-Path $WindotsRoot 'packages\psgallery.json'
+    if (-not (Test-Path $manifestPath)) {
+        Write-Warn2 "No psgallery manifest at $manifestPath — skipping"
+        return
+    }
+    $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
+
+    Write-Step 'Installing PowerShell modules from PSGallery'
+    foreach ($name in $manifest.modules) {
+        if (Get-Module -ListAvailable -Name $name) {
+            Write-Skip "$name already installed"
+        } else {
+            Install-Module -Name $name -Scope CurrentUser -Force -AcceptLicense
+            Write-Ok "installed: $name"
+        }
+    }
+}
+
 function Sync-WingetPackages {
     if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
         Write-Warn2 'winget not found — skipping (install App Installer from the Store)'
@@ -125,8 +146,9 @@ function Sync-WingetPackages {
 if ($SkipPackages) {
     Write-Skip 'Skipping all package installs (-SkipPackages)'
 } else {
-    if ($SkipScoop)  { Write-Skip 'Skipping scoop (-SkipScoop)' }   else { Install-Scoop; Sync-ScoopPackages }
-    if ($SkipWinget) { Write-Skip 'Skipping winget (-SkipWinget)' } else { Sync-WingetPackages }
+    if ($SkipScoop)     { Write-Skip 'Skipping scoop (-SkipScoop)' }         else { Install-Scoop; Sync-ScoopPackages }
+    if ($SkipWinget)    { Write-Skip 'Skipping winget (-SkipWinget)' }       else { Sync-WingetPackages }
+    if ($SkipPSGallery) { Write-Skip 'Skipping PSGallery (-SkipPSGallery)' } else { Sync-PSGalleryModules }
 }
 
 # ---------- symlinks ---------------------------------------------------------

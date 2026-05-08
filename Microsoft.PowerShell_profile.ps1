@@ -4,6 +4,11 @@
 # Mirrors the modular shape of dotfiles' ~/.config/zsh/: each profile.d
 # module owns one concern. Keep this entry-point minimal.
 
+if ($PSVersionTable.PSVersion.Major -lt 7) {
+    Write-Warning 'windots profile targets PowerShell 7+. Skipping.'
+    return
+}
+
 $WindotsRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 # Resolve through the symlink so $WindotsRoot points at the repo,
