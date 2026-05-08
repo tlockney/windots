@@ -20,7 +20,7 @@
     "mise",
     "jq",
     "delta",
-    "extras/psmux",
+    "psmux",
     "nerd-fonts/JetBrainsMono-NF"
   ]
 }
