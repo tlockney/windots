@@ -22,7 +22,18 @@ if (Get-Command atuin -ErrorAction SilentlyContinue) {
 }
 
 if (Get-Command mise -ErrorAction SilentlyContinue) {
-    Invoke-Expression (& { (mise activate pwsh | Out-String) })
+    # mise's pwsh activation registers a CommandNotFound hook that calls
+    # [PSConsoleReadLine]::GetHistoryItems()[-1] without a null check. When
+    # PSReadLine has no history yet (cold start, fresh history file),
+    # GetHistoryItems() returns $null and $null[-1] throws — which fires
+    # several times during profile load. Patch the unsafe indexer to a
+    # null-propagating Select-Object -Last 1 form. Remove this when mise
+    # ships a null-safe version of the hook upstream.
+    $miseInit = mise activate pwsh | Out-String
+    $miseInit = $miseInit -replace `
+        '\[Microsoft\.PowerShell\.PSConsoleReadLine\]::GetHistoryItems\(\)\[-1\]\.CommandLine', `
+        '([Microsoft.PowerShell.PSConsoleReadLine]::GetHistoryItems() | Select-Object -Last 1).CommandLine'
+    Invoke-Expression $miseInit
 }
 
 # fzf PSReadLine integration. Loaded after 10-keybindings.ps1 so PSFzf can
