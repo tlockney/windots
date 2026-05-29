@@ -78,6 +78,24 @@ function Install-Scoop {
     Invoke-RestMethod -Uri 'https://get.scoop.sh' | Invoke-Expression
 }
 
+# scoop needs 7zip to extract most package archives, but it isn't present on a
+# fresh install. Scoop will auto-install it on demand, but that behavior is
+# config-dependent and has bitten us, so install it up front from the main
+# bucket. 7zip ships as a plain zip that scoop extracts with .NET's built-in
+# support, so there's no chicken-and-egg. (git, scoop's other helper, is
+# already a prerequisite — you need it to clone this repo in the first place.)
+$ScoopCoreDeps = @('7zip')
+
+function Install-ScoopApp {
+    param($App, $Installed)
+    $name = ($App -split '/')[-1]
+    if ($Installed -and ($Installed -contains $name)) {
+        Write-Skip "$name already installed"
+    } else {
+        scoop install $App
+    }
+}
+
 function Sync-ScoopPackages {
     $manifestPath = Join-Path $WindotsRoot 'packages\scoop.json'
     if (-not (Test-Path $manifestPath)) {
@@ -85,6 +103,12 @@ function Sync-ScoopPackages {
         return
     }
     $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
+
+    Write-Step 'Installing scoop core dependencies (7zip)'
+    $installed = (scoop list 2>$null | ForEach-Object { $_.Name }) -as [string[]]
+    foreach ($app in $ScoopCoreDeps) {
+        Install-ScoopApp -App $app -Installed $installed
+    }
 
     Write-Step 'Adding scoop buckets'
     $existingBuckets = (scoop bucket list 2>$null | ForEach-Object { $_.Name }) -as [string[]]
@@ -99,12 +123,7 @@ function Sync-ScoopPackages {
     Write-Step 'Installing scoop apps'
     $installed = (scoop list 2>$null | ForEach-Object { $_.Name }) -as [string[]]
     foreach ($app in $manifest.apps) {
-        $name = ($app -split '/')[-1]
-        if ($installed -and ($installed -contains $name)) {
-            Write-Skip "$name already installed"
-        } else {
-            scoop install $app
-        }
+        Install-ScoopApp -App $app -Installed $installed
     }
 }
 
