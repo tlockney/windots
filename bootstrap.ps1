@@ -182,8 +182,9 @@ function New-ConfigSymlink {
             return
         }
         # Refuse to clobber a real file/dir — surface it for the user to handle.
+        $existingKind = if ($existing.LinkType) { $existing.LinkType } else { 'file/dir' }
         Fail "Target exists and isn't our symlink: $TargetPath" `
-             "Move/remove it, then re-run. (Existing: $($existing.LinkType ?? 'file/dir'))"
+             "Move/remove it, then re-run. (Existing: $existingKind)"
     }
 
     New-Item -ItemType SymbolicLink -Path $TargetPath -Target $SourcePath | Out-Null

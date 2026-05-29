@@ -70,13 +70,20 @@ linking, rather than refusing to clobber it.
 
 ## Prerequisites
 
-1. **Developer Mode enabled.** Required for non-elevated symlink
+1. **Git installed.** Windows does not ship with Git, so a fresh
+   machine can't run the `git clone` step below. Install it via
+   winget (App Installer ships with Windows 11):
+   `winget install Git.Git`. If winget isn't available, download
+   the installer from [git-scm.com/download/win](https://git-scm.com/download/win)
+   and run it with the defaults. Open a new terminal afterward so
+   `git` lands on your `PATH`, and verify with `git --version`.
+2. **Developer Mode enabled.** Required for non-elevated symlink
    creation. Settings → System → For developers → Developer Mode.
    `bootstrap.ps1` checks for this and stops with a clear error if
    it's off.
-2. **PowerShell 7 (`pwsh`).** Install via winget if needed:
+3. **PowerShell 7 (`pwsh`).** Install via winget if needed:
    `winget install Microsoft.PowerShell`.
-3. **`dotfiles` cloned somewhere.** Default expected location is
+4. **`dotfiles` cloned somewhere.** Default expected location is
    `$HOME\src\personal\dotfiles`. Override with
    `$env:DOTFILES_HOME` before running bootstrap.
 
