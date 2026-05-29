@@ -23,6 +23,8 @@ windots/
 │   ├── 40-git.ps1                      # oh-my-zsh-style git shortcuts
 │   ├── 50-docker.ps1                   # docker / docker compose shortcuts
 │   └── 60-util.ps1                     # serve, open, e, duh, myip, killall, extract
+├── terminal/
+│   └── settings.json                  # Windows Terminal settings (linked into LocalState)
 └── packages/
     ├── scoop.json                      # CLI toolbox (scoop)
     ├── winget.json                     # GUI apps (winget import format)
@@ -45,6 +47,26 @@ that checkout into the locations Windows tools expect:
 
 `init.ps1` sets `XDG_CONFIG_HOME=$env:USERPROFILE\.config` so
 XDG-aware tools look in the same relative paths as Linux.
+
+**Windows Terminal** is the exception: it's Windows-only with no
+`dotfiles` counterpart, so its `settings.json` lives *here* in
+`terminal/` and is symlinked into the package's `LocalState`:
+
+| Source (in windots)    | Symlink target                                                                       |
+|------------------------|--------------------------------------------------------------------------------------|
+| `terminal\settings.json` | `%LOCALAPPDATA%\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json` |
+
+Because it's a real symlink, settings changed through the Windows
+Terminal UI write straight back into this repo — commit them like
+any other config edit. Heads-up: WT also writes machine-specific
+dynamic profiles (WSL distros, per-machine PowerShell installs) into
+that file, so skim diffs before committing. Only the stable (Store)
+edition is linked; Preview and the unpackaged build are left alone.
+
+Unlike the `dotfiles`-sourced links above, bootstrap *adopts* an
+existing `settings.json` here (WT auto-generates a default on first
+launch) by backing it up to `settings.json.bootstrap-bak` before
+linking, rather than refusing to clobber it.
 
 ## Prerequisites
 
@@ -77,7 +99,9 @@ The bootstrap will:
    PSFzf, posh-git, Terminal-Icons) from PSGallery, scoped to the
    current user.
 6. Create the config symlinks listed above.
-7. Symlink `$PROFILE` to `Microsoft.PowerShell_profile.ps1` in this
+7. Link `terminal/settings.json` into the Windows Terminal
+   `LocalState` (backing up any existing file first).
+8. Symlink `$PROFILE` to `Microsoft.PowerShell_profile.ps1` in this
    repo so profile edits flow live.
 
 Run it again any time — every step is idempotent.
@@ -109,4 +133,5 @@ those guards activate.
   maintaining unless one specifically becomes load-bearing.
 - **`.macos`** — obviously.
 - **Hammerspoon, Alfred, WezTerm config** — Mac-specific or have
-  separate Windows equivalents (PowerToys, Windows Terminal).
+  separate Windows equivalents (PowerToys; Windows Terminal config
+  is managed here under `terminal/`).

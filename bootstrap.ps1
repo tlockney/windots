@@ -190,6 +190,47 @@ function New-ConfigSymlink {
     Write-Ok "linked: $TargetPath -> $SourcePath"
 }
 
+function Link-TerminalSettings {
+    # Windows Terminal is a special case: its settings.json lives under a
+    # package-hashed path (not .config / $HOME), and WT *auto-generates* a
+    # default settings.json on first launch. So unlike New-ConfigSymlink, we
+    # adopt an existing real file (back it up) rather than refusing to clobber.
+    $source = Join-Path $WindotsRoot 'terminal\settings.json'
+    if (-not (Test-Path $source)) {
+        Write-Warn2 "source missing, skipped: $source"
+        return
+    }
+
+    # Stable (Store) edition. LocalState exists whenever WT is installed.
+    $localState = Join-Path $env:LOCALAPPDATA 'Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState'
+    if (-not (Test-Path $localState)) {
+        Write-Skip 'Windows Terminal (stable) not installed — skipping settings link'
+        return
+    }
+    $target = Join-Path $localState 'settings.json'
+
+    if (Test-Path $target) {
+        $existing = Get-Item $target -Force
+        if ($existing.LinkType -eq 'SymbolicLink' -and $existing.Target -eq $source) {
+            Write-Skip "already linked: $target"
+            return
+        }
+        if ($existing.LinkType -eq 'SymbolicLink') {
+            # Stale link pointing elsewhere — replace it.
+            Remove-Item $target -Force
+        } else {
+            # Real file (WT default or hand-edited). Back it up, then adopt.
+            $backup = "$target.bootstrap-bak"
+            if (Test-Path $backup) { Remove-Item $backup -Force }
+            Move-Item $target $backup
+            Write-Warn2 "backed up existing settings.json -> $backup"
+        }
+    }
+
+    New-Item -ItemType SymbolicLink -Path $target -Target $source | Out-Null
+    Write-Ok "linked: $target -> $source"
+}
+
 if ($SkipSymlinks) {
     Write-Skip 'Skipping symlink creation (-SkipSymlinks)'
 } else {
@@ -198,6 +239,9 @@ if ($SkipSymlinks) {
         $src = Join-Path $dotfilesHome $entry.Source
         New-ConfigSymlink -SourcePath $src -TargetPath $entry.Target
     }
+
+    Write-Step 'Linking Windows Terminal settings'
+    Link-TerminalSettings
 
     Write-Step 'Linking PowerShell profile'
     # $PROFILE points at the current host's profile path. We want our canonical
