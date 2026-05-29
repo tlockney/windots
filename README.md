@@ -99,8 +99,9 @@ The bootstrap will:
 
 1. Verify Developer Mode is on.
 2. Verify `$DOTFILES_HOME` exists.
-3. Install scoop if missing, add `extras` and `nerd-fonts` buckets,
-   install everything in `packages/scoop.json`.
+3. Install scoop if missing, install `7zip` (scoop needs it to
+   extract most packages), add `extras` and `nerd-fonts` buckets,
+   then install everything in `packages/scoop.json`.
 4. Run `winget import packages/winget.json` for GUI apps.
 5. `Install-Module` everything in `packages/psgallery.json` (PSReadLine,
    PSFzf, posh-git, Terminal-Icons) from PSGallery, scoped to the
@@ -108,8 +109,10 @@ The bootstrap will:
 6. Create the config symlinks listed above.
 7. Link `terminal/settings.json` into the Windows Terminal
    `LocalState` (backing up any existing file first).
-8. Symlink `$PROFILE` to `Microsoft.PowerShell_profile.ps1` in this
-   repo so profile edits flow live.
+8. Point `$PROFILE` at `Microsoft.PowerShell_profile.ps1` in this
+   repo so profile edits flow live — via a symlink, or a dot-source
+   stub on machines where the profile path can't be symlinked (e.g.
+   a OneDrive-redirected Documents folder).
 
 Run it again any time — every step is idempotent.
 
