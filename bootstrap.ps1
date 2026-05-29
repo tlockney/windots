@@ -251,6 +251,69 @@ function Link-TerminalSettings {
     Write-Ok "linked: $target -> $source"
 }
 
+function Link-PowerShellProfile {
+    # $PROFILE is the one target that lives under Documents, which on managed
+    # machines is usually redirected into OneDrive. OneDrive's filesystem filter
+    # rejects reparse points, so New-Item -SymbolicLink fails there with
+    # "Symbolic links are not supported for the specified path". Try the symlink
+    # first (keeps parity with the other links where it works); if it's not
+    # supported, fall back to a dot-source stub — a real file that loads the
+    # canonical profile from this repo, so edits there still flow live.
+    $source = Join-Path $WindotsRoot 'Microsoft.PowerShell_profile.ps1'
+    if (-not (Test-Path $source)) {
+        Write-Warn2 "source missing, skipped: $source"
+        return
+    }
+
+    $target = $PROFILE
+    $parent = Split-Path -Parent $target
+    if ($parent -and -not (Test-Path $parent)) {
+        New-Item -ItemType Directory -Path $parent -Force | Out-Null
+    }
+
+    # Marker on the stub's first line so we can recognize our own stub on re-runs.
+    $stubMarker = '# windots-profile-stub'
+    $stubBody = @(
+        $stubMarker
+        '# Loads the canonical profile from the windots repo. Written instead of a'
+        "# symlink because this path doesn't support them (e.g. OneDrive-redirected"
+        '# Documents). Edits to the repo profile still apply in every new shell.'
+        ". `"$source`""
+    ) -join "`r`n"
+
+    if (Test-Path $target) {
+        $existing = Get-Item $target -Force
+        if ($existing.LinkType -eq 'SymbolicLink' -and $existing.Target -eq $source) {
+            Write-Skip "already linked: $target"
+            return
+        }
+        $content = Get-Content $target -Raw -ErrorAction SilentlyContinue
+        if ($content -and $content.Contains($stubMarker) -and $content.Contains($source)) {
+            Write-Skip "already stubbed: $target"
+            return
+        }
+        if ($existing.LinkType -eq 'SymbolicLink') {
+            Remove-Item $target -Force   # stale link pointing elsewhere — replace it
+        } else {
+            # Real file (a previous profile). Back it up, then adopt the path.
+            $backup = "$target.bootstrap-bak"
+            if (Test-Path $backup) { Remove-Item $backup -Force }
+            Move-Item $target $backup
+            Write-Warn2 "backed up existing profile -> $backup"
+        }
+    }
+
+    try {
+        New-Item -ItemType SymbolicLink -Path $target -Target $source -ErrorAction Stop | Out-Null
+        Write-Ok "linked: $target -> $source"
+    } catch {
+        # Symlinks unsupported on this path (OneDrive et al.) — use a stub instead.
+        Set-Content -Path $target -Value $stubBody -Encoding UTF8
+        Write-Ok "wrote dot-source stub (symlink unsupported here): $target"
+        Write-Skip $_.Exception.Message
+    }
+}
+
 if ($SkipSymlinks) {
     Write-Skip 'Skipping symlink creation (-SkipSymlinks)'
 } else {
@@ -265,9 +328,9 @@ if ($SkipSymlinks) {
 
     Write-Step 'Linking PowerShell profile'
     # $PROFILE points at the current host's profile path. We want our canonical
-    # profile to be the one PowerShell loads on startup.
-    $profileSource = Join-Path $WindotsRoot 'Microsoft.PowerShell_profile.ps1'
-    New-ConfigSymlink -SourcePath $profileSource -TargetPath $PROFILE
+    # profile to be the one PowerShell loads on startup — via symlink, or a
+    # dot-source stub where symlinks aren't supported (e.g. OneDrive).
+    Link-PowerShellProfile
 }
 
 Write-Host ""
