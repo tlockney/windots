@@ -9,7 +9,12 @@
         { "PackageIdentifier": "Microsoft.VisualStudioCode" },
         { "PackageIdentifier": "AgileBits.1Password" },
         { "PackageIdentifier": "AgileBits.1Password.CLI" },
-        { "PackageIdentifier": "Git.Git" }
+        { "PackageIdentifier": "Git.Git" },
+        { "PackageIdentifier": "Google.Chrome" },
+        { "PackageIdentifier": "Microsoft.VisualStudio.2022.Community" },
+        { "PackageIdentifier": "Notepad++.Notepad++" },
+        { "PackageIdentifier": "Typora.Typora" },
+        { "PackageIdentifier": "Obsidian.Obsidian" }
       ],
       "SourceDetails": {
         "Argument": "https://cdn.winget.microsoft.com/cache",

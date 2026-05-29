@@ -20,6 +20,7 @@
     "mise",
     "jq",
     "delta",
+    "pandoc",
     "psmux",
     "nerd-fonts/JetBrainsMono-NF"
   ]
