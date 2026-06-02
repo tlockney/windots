@@ -35,9 +35,20 @@ function Use-CachedToolInit {
         if ($cacheTime -gt $binTime) { $regen = $false }
     }
     if ($regen) {
-        & $Command @InitArgs | Set-Content -Path $cacheFile -Encoding utf8
+        # Capture stdout first: if the tool emits nothing (e.g. it wrote a
+        # warning to stderr and bailed), piping straight into Set-Content
+        # leaves no file behind, and the dot-source below would then fail
+        # with "not recognized as a name of a cmdlet...". Only write — and
+        # only cache — when there's actually init script to cache, so a
+        # transient empty run is retried next load instead of stored.
+        $init = & $Command @InitArgs
+        if ($init) {
+            $init | Set-Content -Path $cacheFile -Encoding utf8
+        }
     }
-    . $cacheFile
+    if (Test-Path $cacheFile) {
+        . $cacheFile
+    }
 }
 
 # --- PowerShell modules from PSGallery (see packages/psgallery.json) ----
